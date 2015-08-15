@@ -12,6 +12,48 @@ import (
 	"time"
 )
 
+// printHashes prints the file paths and corresponding hashes to stdout. It
+// also returns the total number of files and total file size processed
+func printHashes(results <-chan FileInfo) (int64, int64, []error) {
+	var totalFileSize int64
+	var numFiles int64
+	var errors []error
+	for info := range results {
+		if info.Error != nil {
+			errors = append(errors, info.Error)
+			continue
+		}
+		numFiles += 1
+		totalFileSize += int64(info.Size)
+		fmt.Printf("MD5, %s, %s\n", info.Path, info.Hash)
+	}
+	return totalFileSize, numFiles, errors
+}
+
+// printStats prints runtime statistics
+func printStats(start time.Time, numFiles int64, totalFileSize int64, numErrors int) {
+	fileSizeMB := totalFileSize / 1024 / 1024
+	execTime := time.Since(start).Seconds()
+	fmt.Println()
+	fmt.Println("--------------  RUNTIME STATS -----------------")
+	fmt.Printf("hornet version   : %s\n", version)
+	fmt.Printf("date             : %s\n", time.Now().Format(time.RFC1123))
+	fmt.Printf("elapsed time     : %f s\n", execTime)
+	fmt.Printf("# file errors    : %d\n", numErrors)
+	fmt.Printf("files processed  : %d\n", numFiles)
+	fmt.Printf("data processed   : %d MB\n", fileSizeMB)
+	fmt.Printf("throughput       : %f MB/s\n", float64(fileSizeMB)/execTime)
+}
+
+// printErrors prints any encountered runtime errors
+func printErrors(errors []error) {
+	fmt.Println()
+	fmt.Println("--------------  RUNTIME ERRORS -----------------")
+	for i, e := range errors {
+		fmt.Println(i, e)
+	}
+}
+
 // usage prints a brief usage info
 func usage() {
 	fmt.Printf("hornet v%s  (C) 2015 Markus Dittrich", version)
@@ -20,18 +62,4 @@ func usage() {
 	fmt.Println()
 	fmt.Println("options:")
 	flag.PrintDefaults()
-}
-
-// printStats prints runtime statistics
-func printStats(start time.Time, numFiles int64, totalFileSize int64) {
-	fileSizeMB := totalFileSize / 1024 / 1024
-	execTime := time.Since(start).Seconds()
-	fmt.Println()
-	fmt.Println("--------------  RUNTIME STATS -----------------")
-	fmt.Printf("hornet version   : %s\n", version)
-	fmt.Printf("date             : %s\n", time.Now().Format(time.RFC1123))
-	fmt.Printf("elapsed time     : %f s\n", execTime)
-	fmt.Printf("files processed  : %d\n", numFiles)
-	fmt.Printf("data processed   : %d MB\n", fileSizeMB)
-	fmt.Printf("throughput       : %f MB/s\n", float64(fileSizeMB)/execTime)
 }
