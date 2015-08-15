@@ -7,6 +7,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -21,7 +22,8 @@ type FileInfo struct {
 // fileWalker walks the directory tree starting at root and adds all
 // encountered file paths to the file queue
 // NOTE: Currently we only track regular files and symbolic links
-func fileWalker(root string, fileQueue chan<- string, results chan<- FileInfo) error {
+func fileWalker(done <-chan struct{}, root string, fileQueue chan<- string,
+	results chan<- FileInfo) error {
 
 	defer close(fileQueue)
 
@@ -31,7 +33,11 @@ func fileWalker(root string, fileQueue chan<- string, results chan<- FileInfo) e
 			return nil
 		}
 		if m := info.Mode(); m&os.ModeType == 0 || (m&os.ModeSymlink != 0) {
-			fileQueue <- pth
+			select {
+			case fileQueue <- pth:
+			case <-done:
+				return fmt.Errorf("walk canceled")
+			}
 		}
 		return nil
 	}

@@ -38,7 +38,7 @@ func main() {
 		os.Exit(1)
 	}
 	root := flag.Arg(0)
-	if hashType != "md5" && hashType != "sha1" && hashType != "sha512" {
+	if hashType != "md5" && hashType != "sha1" && hashType != "sha256" {
 		usage()
 		os.Exit(1)
 	}
@@ -48,12 +48,17 @@ func main() {
 	start := time.Now()
 	results := make(chan FileInfo)
 	fileQueue := make(chan string)
-	go fileWalker(root, fileQueue, results)
+
+	// done allows to close down active goroutines
+	done := make(chan struct{})
+	defer close(done)
+
+	go fileWalker(done, root, fileQueue, results)
 
 	var wg sync.WaitGroup
 	for i := 0; i < int(numThreads); i++ {
 		wg.Add(1)
-		go digester(fileQueue, results, hashType, &wg)
+		go digester(done, fileQueue, results, hashType, &wg)
 	}
 
 	go func() {

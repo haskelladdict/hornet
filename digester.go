@@ -12,6 +12,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha512"
 	"encoding/hex"
+	"fmt"
 	"hash"
 	"os"
 	"sync"
@@ -19,8 +20,11 @@ import (
 
 // digester takes files from the file queues, calls the hash function on them
 // and adds the resulting hash to the results channel
-func digester(fileQueue <-chan string, results chan<- FileInfo, hashType string,
-	wg *sync.WaitGroup) {
+func digester(done chan struct{}, fileQueue <-chan string, results chan<- FileInfo,
+	hashType string, wg *sync.WaitGroup) {
+
+	defer wg.Done()
+
 	// select hash
 	var hashFn func() hash.Hash
 	switch hashType {
@@ -31,7 +35,10 @@ func digester(fileQueue <-chan string, results chan<- FileInfo, hashType string,
 	case "sha512":
 		hashFn = sha512.New
 	default:
-		panic("unknown hash function " + hashType)
+		// should never happen
+		fmt.Fprintf(os.Stderr, "unknown hash function %s\n", hashType)
+		done <- struct{}{}
+		return
 	}
 
 	for file := range fileQueue {
@@ -40,9 +47,12 @@ func digester(fileQueue <-chan string, results chan<- FileInfo, hashType string,
 			results <- FileInfo{file, err, "", 0}
 			continue
 		}
-		results <- FileInfo{file, nil, hashString, size}
+		select {
+		case results <- FileInfo{file, nil, hashString, size}:
+		case <-done:
+			return
+		}
 	}
-	wg.Done()
 }
 
 // hasher computes the requested hash for the file at filepath. It also returns
