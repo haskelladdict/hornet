@@ -38,7 +38,7 @@ func main() {
 		os.Exit(1)
 	}
 	root := flag.Arg(0)
-	if hashType != "md5" && hashType != "sha1" && hashType != "sha256" {
+	if hashType != "md5" && hashType != "sha1" && hashType != "sha512" {
 		usage()
 		os.Exit(1)
 	}
@@ -53,7 +53,7 @@ func main() {
 	var wg sync.WaitGroup
 	for i := 0; i < int(numThreads); i++ {
 		wg.Add(1)
-		go digester(fileQueue, results, &wg)
+		go digester(fileQueue, results, hashType, &wg)
 	}
 
 	go func() {
@@ -62,7 +62,7 @@ func main() {
 	}()
 
 	// print hashes and errors/stats if requested
-	totalFileSize, numFiles, errors := printHashes(results)
+	totalFileSize, numFiles, errors := printHashes(results, hashType)
 
 	if doStats {
 		printStats(start, numFiles, totalFileSize, len(errors))

@@ -14,7 +14,7 @@ import (
 
 // printHashes prints the file paths and corresponding hashes to stdout. It
 // also returns the total number of files and total file size processed
-func printHashes(results <-chan FileInfo) (int64, int64, []error) {
+func printHashes(results <-chan FileInfo, hashType string) (int64, int64, []error) {
 	var totalFileSize int64
 	var numFiles int64
 	var errors []error
@@ -25,7 +25,7 @@ func printHashes(results <-chan FileInfo) (int64, int64, []error) {
 		}
 		numFiles += 1
 		totalFileSize += int64(info.Size)
-		fmt.Printf("MD5, %s, %s\n", info.Path, info.Hash)
+		fmt.Printf("%s , %s , %s\n", hashType, info.Path, info.Hash)
 	}
 	return totalFileSize, numFiles, errors
 }
