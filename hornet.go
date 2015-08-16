@@ -8,6 +8,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"runtime"
 	"sync"
@@ -21,6 +22,7 @@ var (
 	numThreads int
 	hashType   string
 	doStats    bool
+	refFile    string
 	showErrors bool
 )
 
@@ -29,27 +31,38 @@ func init() {
 	flag.StringVar(&hashType, "h", "md5", "hash type: md5 (default), sha1, sha512")
 	flag.BoolVar(&showErrors, "e", false, "show any errors at the end or a run")
 	flag.BoolVar(&doStats, "s", false, "print final runtime statistics")
+	flag.StringVar(&refFile, "c", "", "compare against <filename> containing output\n"+
+		"\tfrom previous run and report changed or missing files")
 }
 
 func main() {
 	flag.Parse()
 	if len(flag.Args()) < 1 {
-		usage()
-		os.Exit(1)
+		usageAndExit()
 	}
 	root := flag.Arg(0)
 	if hashType != "md5" && hashType != "sha1" && hashType != "sha512" {
-		usage()
-		os.Exit(1)
+		usageAndExit()
 	}
 	runtime.GOMAXPROCS(int(numThreads))
+
+	// parse reference file if requested
+	var fileMap map[string]string
+	if refFile != "" {
+		var err error
+		fileMap, hashType, err = parseReference(refFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to parse reference file %s: %s\n", refFile, err)
+			usageAndExit()
+		}
+	}
 
 	// main processing loop
 	start := time.Now()
 	results := make(chan FileInfo)
 	fileQueue := make(chan string)
 
-	// done allows to close down active goroutines
+	// done will close down all active goroutines
 	done := make(chan struct{})
 	defer close(done)
 
@@ -66,8 +79,15 @@ func main() {
 		close(results)
 	}()
 
-	// print hashes and errors/stats if requested
-	totalFileSize, numFiles, errors := printHashes(results, hashType)
+	// either print hashes and errors/stats if requested or compare against
+	// the reference
+	var totalFileSize, numFiles int64
+	var errors []error
+	if refFile != "" {
+		totalFileSize, numFiles, errors = compareHashes(results, fileMap)
+	} else {
+		totalFileSize, numFiles, errors = printHashes(results, hashType)
+	}
 
 	if doStats {
 		printStats(start, numFiles, totalFileSize, len(errors))
@@ -77,5 +97,3 @@ func main() {
 		printErrors(errors)
 	}
 }
-
-//

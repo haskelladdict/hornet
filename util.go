@@ -9,6 +9,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -23,9 +24,9 @@ func printHashes(results <-chan FileInfo, hashType string) (int64, int64, []erro
 			errors = append(errors, info.Error)
 			continue
 		}
-		numFiles += 1
+		numFiles++
 		totalFileSize += int64(info.Size)
-		fmt.Printf("%s , %s , %s\n", hashType, info.Path, info.Hash)
+		fmt.Printf("%s,\"%s\",%s\n", hashType, info.Path, info.Hash)
 	}
 	return totalFileSize, numFiles, errors
 }
@@ -54,12 +55,13 @@ func printErrors(errors []error) {
 	}
 }
 
-// usage prints a brief usage info
-func usage() {
+// usage prints a brief usage info and then exits with status 1
+func usageAndExit() {
 	fmt.Printf("hornet v%s  (C) 2015 Markus Dittrich", version)
 	fmt.Println()
 	fmt.Println("usage: hornet <options> <directory root or filename>")
 	fmt.Println()
 	fmt.Println("options:")
 	flag.PrintDefaults()
+	os.Exit(1)
 }

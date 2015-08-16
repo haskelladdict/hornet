@@ -36,7 +36,7 @@ func digester(done chan struct{}, fileQueue <-chan string, results chan<- FileIn
 		hashFn = sha512.New
 	default:
 		// should never happen
-		fmt.Fprintf(os.Stderr, "unknown hash function %s\n", hashType)
+		fmt.Fprintf(os.Stderr, "unknown hash function **%s**\n", hashType)
 		done <- struct{}{}
 		return
 	}

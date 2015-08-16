@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 )
 
+// FileInfo contains the size and checksum for each examined file (or
+// the error encountered during reading or computing the hash)
 type FileInfo struct {
 	Path  string
 	Error error // processing error or nil otherwise
