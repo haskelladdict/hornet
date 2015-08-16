@@ -38,7 +38,7 @@ func main() {
 		os.Exit(1)
 	}
 	root := flag.Arg(0)
-	if hashType != "md5" && hashType != "sha1" && hashType != "sha256" {
+	if hashType != "md5" && hashType != "sha1" && hashType != "sha512" {
 		usage()
 		os.Exit(1)
 	}

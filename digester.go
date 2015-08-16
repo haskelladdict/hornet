@@ -67,8 +67,18 @@ func hasher(filePath string, hashFn func() hash.Hash) (string, int, error) {
 	}
 	defer fp.Close()
 
+	// size buffer based on filesize
+	info, err := fp.Stat()
+	if err != nil {
+		return "", 0, err
+	}
+	bufferSize := int64(1024 * 1024) // 1 MB
+	if info.Size() < bufferSize {
+		bufferSize = info.Size() + 1
+	}
+
 	reader := bufio.NewReader(fp)
-	buffer := make([]byte, 10000)
+	buffer := make([]byte, bufferSize)
 	var fileSize int
 	h := hashFn()
 	for {
